@@ -1,0 +1,20 @@
+{
+    "ahl": {
+        "11390225": {
+            "Run": 88295.1,
+            "lastname": "Bloggs",
+            "Ride": 301257.7,
+            "firstname": "Joe",
+            "team": "ahl"
+        },
+        "6694983": {
+            "lastname": "Henry",
+            "Ride": 26561.2,
+            "Run": 1600.0,
+            "firstname": "Harry",
+            "team": "ahl"
+        }
+    },
+    "glg": {},
+    "numeric": {}
+}

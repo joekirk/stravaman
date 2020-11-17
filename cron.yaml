@@ -1,0 +1,8 @@
+cron:
+- description: "Token Refresh"
+  url: /token_refresh
+  schedule: every 3 hours
+
+- description: "Athlete Activity Summary"
+  url: /activity_data
+  schedule: every day 14:30

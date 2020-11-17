@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<title>Register Team</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+<style>
+body,h1 {font-family: "Raleway", sans-serif}
+body, html {height: 100%}
+.bgimg {
+  background-image: url('/static/background-dark.jpg');
+  min-height: 100%;
+  background-position: center;
+  background-size: cover;
+}
+
+</style>
+<body>
+
+<div class="bgimg w3-display-container w3-animate-opacity w3-text-white">
+    <div class="w3-display-left">
+        <h1 class="w3-xxxlarge w3-animate-top">Select a team</h1>
+        <form action="/register-team" method="POST">
+            <select name="team" id="team">
+                <option value="AHL">AHL</option>
+                <option value="GLG">GLG</option>
+                <option value="Numeric">Numeric</option>
+            </select>
+            <input type="hidden" name="athleteid" value="{{ athleteid }}" />
+            <button type="submit" class="btn btn-primary">Sign up</button>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>
+
+
