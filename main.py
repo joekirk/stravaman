@@ -10,6 +10,7 @@ from flask import abort
 
 app = Flask(__name__)
 app.config.from_envvar('APP_SETTINGS')
+
 cred = credentials.ApplicationDefault()
 initialize_app(cred, {'projectId': 'strava-man'})
 
@@ -18,11 +19,6 @@ LOG = getLogger(__name__)
 ATHLETE_TOKENS = 'tokens'
 ATHLETE_ACTIVITY_SUMMARY = 'activity_summary'
 ATHLETE_TEAM = 'team'
-
-
-AHL = 'AHL'
-GLG = 'GLG'
-NUMERIC = 'Numeric'
 
 
 @app.route("/token_refresh")
@@ -39,7 +35,7 @@ def refresh_all_tokens():
                 client_id=app.config['STRAVA_CLIENT_ID'],
                 client_secret=app.config['STRAVA_CLIENT_SECRET'],
                 refresh_token=record.get('refresh_token'))
-            doc_ref.set({
+            doc_ref.update({
                 'firstname': record.get('firstname'),
                 'lastname': record.get('lastname'),
                 'access_token': refresh_response["access_token"],
@@ -53,24 +49,59 @@ def refresh_all_tokens():
     return status_code
 
 
-@app.route("/activity_data")
-def get_activity_data():
+@app.route("/strava_data/<date>/<batch>")
+def get_strava_data(date, batch):
+
+    try:
+        after = dt.strptime(date, '%Y-%m-%d')
+        batch_size = int(batch)
+    except Exception:
+        return Response(status=400)
+
     db = firestore.client()
     athlete_tokens = db.collection(ATHLETE_TOKENS).list_documents()
+
+    query_count = 0
+    LOG.info(f"Starting strava query. Start date {after} , Batch Size {batch_size}")
+
     for athlete in athlete_tokens:
+
+        if query_count == batch_size:
+            LOG.info("Batch limit reached")
+            break
         try:
             doc_ref = db.collection(ATHLETE_TOKENS).document(athlete.id)
             token_record = doc_ref.get()
-            LOG.info(f"Requesting activity data for {token_record.get('firstname')} {token_record.get('firstname')}")
             client = Client(access_token=token_record.get('access_token'))
-            activities = client.get_activities(after=dt(2020, 10, 1))
-            athlete_summary = create_athlete_summary(activities)
-            athlete_summary['firstname'] = token_record.get('firstname')
-            athlete_summary['lastname'] = token_record.get('lastname')
+
             summary_doc = db.collection(ATHLETE_ACTIVITY_SUMMARY).document(athlete.id)
-            summary_doc.set(athlete_summary)
-        except Exception:
-            LOG.error(f"Could not get data token for athlete {athlete.id}")
+            summary_record = summary_doc.get()
+
+            try:
+                last_update = dt.strptime(summary_record.get('update_date'), "%Y-%m-%d").date()
+            except (KeyError, TypeError):
+                last_update = None
+
+            if last_update and last_update == dt.today().date():
+                LOG.info(f"No update required for athlete {token_record.get('firstname')} {token_record.get('lastname')}")
+                continue
+
+            query_count += 1
+            LOG.info(f"Requesting activity data for {token_record.get('firstname')} {token_record.get('lastname')}")
+            athlete_summary = defaultdict(float)
+            try:
+                activities = client.get_activities(after=after)
+                athlete_summary = create_athlete_summary(activities)
+            except Exception:
+                LOG.error(f"Could not get data from strava for athlete {athlete.id}, setting to zero")
+            finally:
+                athlete_summary['firstname'] = token_record.get('firstname')
+                athlete_summary['lastname'] = token_record.get('lastname')
+                athlete_summary['update_date'] = dt.today().strftime("%Y-%m-%d")
+                summary_doc.set(athlete_summary)
+        except Exception as e:
+            LOG.exception(f"Failed to create request for athlete {athlete.id}")
+
     status_code = Response(status=200)
     return status_code
 
@@ -78,7 +109,10 @@ def get_activity_data():
 def create_athlete_summary(activities):
     activity_summary = defaultdict(float)
     for activity in activities:
-        activity_summary[activity.type] += activity.distance.num
+        if activity.type in ('Workout', 'Yoga'):
+            activity_summary[activity.type] += activity.elapsed_time.total_seconds()
+        else:
+            activity_summary[activity.type] += activity.distance.num
     return activity_summary
 
 
@@ -102,7 +136,7 @@ def authorize(f):
 def activity_data():
     db = firestore.client()
     activities = db.collection(ATHLETE_ACTIVITY_SUMMARY).list_documents()
-    activity_summary = {AHL: {}, GLG: {}, NUMERIC: {}}
+    activity_summary = defaultdict(defaultdict)
 
     for athlete in activities:
         try:
@@ -124,7 +158,8 @@ def login():
     c = Client()
     url = c.authorization_url(client_id=app.config['STRAVA_CLIENT_ID'],
                               redirect_uri=url_for('.logged_in', _external=True),
-                              approval_prompt='auto')
+                              approval_prompt='auto',
+                              scope=['read', 'activity:read'])
 
     return render_template('login.html', authorize_url=url)
 
@@ -159,6 +194,7 @@ def logged_in():
     - error
     """
     error = request.args.get('error')
+    scope = request.args.get('scope')
     if error:
         return render_template('login_error.html', error=error)
     else:
@@ -176,7 +212,8 @@ def logged_in():
                 'lastname': strava_athlete.lastname,
                 'access_token': access_token["access_token"],
                 'refresh_token': access_token["refresh_token"],
-                'expires': access_token["expires_at"]
+                'expires': access_token["expires_at"],
+                'scope': scope
             })
             return redirect(url_for('team', athleteid=str(strava_athlete.id)))
         except Exception as e:
@@ -191,3 +228,4 @@ if __name__ == '__main__':
     basicConfig(level=INFO)
     LOG.info("Starting stravaman")
     app.run(debug=True)
+

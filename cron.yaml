@@ -4,5 +4,5 @@ cron:
   schedule: every 3 hours
 
 - description: "Athlete Activity Summary"
-  url: /activity_data
-  schedule: every day 14:30
+  url: /strava_data/2020-12-14/100
+  schedule: every 1 hours from 01:00 to 12:00
