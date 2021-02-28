@@ -25,7 +25,6 @@ the activity-data endpoint
 ```python
 STRAVA_CLIENT_ID=123
 STRAVA_CLIENT_SECRET='deadbeefdeadbeefdeadbeef'
-SECRET
 ```
 
 Run Server
