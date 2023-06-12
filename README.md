@@ -42,8 +42,22 @@ Deployment
 
 To deploy the app to google cloud
 
+Follow installation instructions for gcloud: [https://cloud.google.com/sdk/docs/install#linux]
+
+Create a new application: [https://console.cloud.google.com/]
+
+Login to your account
+
 ```
-(env) $ gcloud deploy app
+(env) $ gcloud auth login 
+```
+
+```
+(env) $ gcloud config set project PROJECT_ID 
+```
+
+```
+(env) $ gcloud app deploy 
 ```
 
 To deploy the cron jobs to google cloud
@@ -51,4 +65,3 @@ To deploy the cron jobs to google cloud
 ```
 (env) $ gcloud deploy app cron.yaml
 ```
-

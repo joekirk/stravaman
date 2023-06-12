@@ -14,7 +14,7 @@ app = Flask(__name__)
 app.config.from_envvar('APP_SETTINGS')
 
 cred = credentials.ApplicationDefault()
-initialize_app(cred, {'projectId': 'strava-man'})
+initialize_app(cred, {'projectId': app.config['stravaman']})
 
 LOG = getLogger(__name__)
 
@@ -250,7 +250,7 @@ def logged_in():
 
             return redirect(url_for('team', athleteid=str(strava_athlete.id)))
         except Exception as e:
-            return render_template('login_error.html', error=e)
+            return render_template('login_error.html', error=f"{e} [Exception in parsing response]")
 
 
 @app.route("/whodoneit/<route>/<place>/<distance>")
