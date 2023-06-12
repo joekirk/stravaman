@@ -14,7 +14,7 @@ app = Flask(__name__)
 app.config.from_envvar('APP_SETTINGS')
 
 cred = credentials.ApplicationDefault()
-initialize_app(cred, {'projectId': app.config['stravaman']})
+initialize_app(cred, {'projectId': app.config['GCLOUD_APP_ID']})
 
 LOG = getLogger(__name__)
 
